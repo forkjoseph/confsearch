@@ -1,6 +1,5 @@
 #!/usr/bin/env python2.7
 # -*- coding: utf-8 -*-
-import argparse
 import requests
 from bs4 import BeautifulSoup
 import re
@@ -10,13 +9,7 @@ __copyright__ = "Copyright (C) 2017 " + __author__
 __license__ = "GNU GPL v2.0"
 __version__ = "0.0.1"
 
-parser = argparse.ArgumentParser(description='TUI conference search tool')
-parser.add_argument('-q', '--query', help='query to execute (e.g., acronym)',
-        required=True, type=str)
-parser.add_argument('-y', '--year', help='year (default is current year)', type=str)
-parser.add_argument('-v', '--verbose', help='verbose mode', action='store_true',
-        default=False)
-args = parser.parse_args()
+verbose = False
 
 class Conf(object):
     aka_regex = re.compile(r"(.*) (\d{4})")
@@ -149,10 +142,13 @@ def confinfo(conf):
 def confobj_generator(conf_name, conf_year):
     HTTP    = 'http://'
     BASEURL = 'www.wikicfp.com'
+    if type(conf_year) == int or type(conf_year) == float:
+        conf_year = str(conf_year)
+
     SEARCHURL = '/cfp/servlet/tool.search?q={:s}&year={:s}'.format(conf_name, conf_year)
     url = HTTP + BASEURL + SEARCHURL 
 
-    if args.verbose:
+    if verbose:
         print '{:>10s}:'.format('query'), conf_name
         print '{:>10s}:'.format('year'), conf_year
         print '{:>10s}:'.format('URL'), url
@@ -210,29 +206,4 @@ def confobj_generator(conf_name, conf_year):
                         confobj.set_deadline(deadline, abstract)
                         yield confobj
 
-
-def main():
-    if args.year == None:
-        from datetime import datetime as dt
-        conf_year = [str(dt.now().year), str(dt.now().year + 1)]
-        # conf_year = ''
-    else:
-        if args.year.startswith('20'):
-            conf_year = [args.year]
-        else:
-            conf_year = ['20' + args.year ]
-    conf_name = args.query
-
-    confarr = []
-    for year in conf_year:
-        for c in confobj_generator(conf_name, year):
-            confarr.append(c)
-
-    newarr = sorted(confarr, reverse=True)
-    for conf in newarr:
-        # print "[%s]'[%s]" % (conf.aka, conf.year)
-        confinfo(conf)
-
-if __name__ == '__main__':
-    main()
 
