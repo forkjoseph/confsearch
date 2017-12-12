@@ -4,33 +4,36 @@ import argparse
 from confsearch import *
 
 parser = argparse.ArgumentParser(description='TUI conference search tool')
-parser.add_argument('-q', '--query', help='query to execute (e.g., acronym)',
-        required=True, type=str)
-parser.add_argument('-y', '--year', help='year (default is current year)', type=str)
 parser.add_argument('-v', '--verbose', help='verbose mode', action='store_true',
         default=False)
+parser.add_argument('-q', '--query', help='query to execute (e.g., acronym)',
+        type=str, action='append', required=True)
+parser.add_argument('-y', '--year', help='year (default is current year)',
+        type=str, action='append')
 args = parser.parse_args()
 
 def main():
+    # if args.verbose:
+    #   confsearch.verbose = True
+
+    conf_names = args.query
     if args.year == None:
         from datetime import datetime as dt
-        conf_year = [str(dt.now().year), str(dt.now().year + 1)]
-        # conf_year = ''
+        current = dt.now().year
+        conf_years = [str(current), str(current + 1), ]
     else:
-        if args.year.startswith('20'):
-            conf_year = [args.year]
-        else:
-            conf_year = ['20' + args.year ]
-
-    if args.verbose:
-      confsearch.verbose = True
-
-    conf_name = args.query
+        conf_years = []
+        for year in args.year:
+            if year.startswith('20'):
+                conf_years.append(year)
+            else:
+                conf_years.append('20' + year)
 
     confarr = []
-    for year in conf_year:
-        for c in confobj_generator(conf_name, year):
-            confarr.append(c)
+    for name in conf_names:
+        for year in conf_years:
+            for c in confobj_generator(name, year):
+                confarr.append(c)
 
     newarr = sorted(confarr, reverse=True)
     for conf in newarr:
