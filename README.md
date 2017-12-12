@@ -1,8 +1,8 @@
-Conference Search Library
+# Conference Search Library
 
-## what's confsearch?
-ConfSearch is a simple python library that allows searching CS conferences from
-terminal/Tmux. 
+ConfSearch is a simple python library that allows searching CS conferences. 
+
+ConfSearch uses WikiCFP as data-source.
 
 
 ## Install
