@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2.7
 # -*- coding: utf-8 -*-
 import argparse
 import requests
@@ -11,19 +11,21 @@ __license__ = "GNU GPL v2.0"
 __version__ = "0.0.1"
 
 parser = argparse.ArgumentParser(description='TUI conference search tool')
-parser.add_argument('-q', '--query', help='query to execute (e.g., acronym)', required=True,
-        type=str)
+parser.add_argument('-q', '--query', help='query to execute (e.g., acronym)',
+        required=True, type=str)
 parser.add_argument('-y', '--year', help='year (default is current year)', type=str)
-
-baseurl= 'www.wikicfp.com'
-aka_regex = re.compile(r"(.*) (\d{4})")
-date_regex = re.compile(r"(\w{3}) (\d{1,2}), (\d{4})")
+parser.add_argument('-v', '--verbose', help='verbose mode', action='store_true',
+        default=False)
+args = parser.parse_args()
 
 class Conf(object):
+    aka_regex = re.compile(r"(.*) (\d{4})")
+    date_regex = re.compile(r"(\w{3}) (\d{1,2}), (\d{4})")
+
     def __init__(self, name, aka):
         self.name = name
         aka = aka.strip()
-        tmp = aka_regex.search(aka)
+        tmp = self.aka_regex.search(aka)
         # print tmp.group(1), tmp.group(2)
         self.aka = tmp.group(1).strip()
         self.year = tmp.group(2)
@@ -38,7 +40,7 @@ class Conf(object):
         ret = '{:s} {:s}: {:s}'.format(self.aka, self.year, deadline)
         if self.abstract == '':
             return ret
-        ret += ' (abs {:s})'.format(abstract)
+        ret += ' (abs: {:s})'.format(abstract)
         return ret
 
     def set_when(self, when):
@@ -48,12 +50,12 @@ class Conf(object):
         start = when.split('-')[0]
         end = when.split('-')[1]
 
-        tmp = date_regex.search(start)
+        tmp = self.date_regex.search(start)
         self.when_start_month = tmp.group(1)
         self.when_start_day = tmp.group(2)
         self.when_start_year = tmp.group(3)
 
-        tmp = date_regex.search(end)
+        tmp = self.date_regex.search(end)
         self.when_end_month = tmp.group(1)
         self.when_end_day = tmp.group(2)
         self.when_end_year = tmp.group(3)
@@ -68,7 +70,7 @@ class Conf(object):
 
     def set_deadline(self, deadline, abstract=''):
         deadline = deadline.strip()
-        tmp = date_regex.search(deadline)
+        tmp = self.date_regex.search(deadline)
         if tmp:
             self.deadline_month = tmp.group(1)
             self.deadline_day = tmp.group(2)
@@ -85,7 +87,7 @@ class Conf(object):
                 self.deadline = ''
 
         abstract = abstract.strip()
-        tmp = date_regex.search(abstract)
+        tmp = self.date_regex.search(abstract)
         if tmp:
             self.abstract_month = tmp.group(1)
             self.abstract_day = tmp.group(2)
@@ -145,14 +147,24 @@ def confinfo(conf):
 
 
 def confobj_generator(conf_name, conf_year):
-    searchurl = '/cfp/servlet/tool.search?q={:s}&year={:s}'.format(conf_name, conf_year)
-    url = baseurl + searchurl
+    HTTP    = 'http://'
+    BASEURL = 'www.wikicfp.com'
+    SEARCHURL = '/cfp/servlet/tool.search?q={:s}&year={:s}'.format(conf_name, conf_year)
+    url = HTTP + BASEURL + SEARCHURL 
 
-    r  = requests.get("http://" +url)
-    data = r.text
-    soup = BeautifulSoup(data, 'lxml')
+    if args.verbose:
+        print '{:>10s}:'.format('query'), conf_name
+        print '{:>10s}:'.format('year'), conf_year
+        print '{:>10s}:'.format('URL'), url
+        '''
+        curl
+        "http://www.wikicfp.com/cfp/servlet/tool.search?q=mobisys&year=2017"  |
+        grep -v 'tr>\|Search' | grep '<td.*</td>'
+        '''
 
-    confarr = []
+    r  = requests.get(url)
+    soup = BeautifulSoup(r.text, 'lxml')
+
     for div in soup.find_all('table', {'align' : 'center', 'cellpadding' : '2'}):
         confs = div.findAll('tr')
         cnt = 0
@@ -200,21 +212,21 @@ def confobj_generator(conf_name, conf_year):
 
 
 def main():
-    args = parser.parse_args()
     if args.year == None:
         from datetime import datetime as dt
-        conf_year = str(dt.now().year)
+        conf_year = [str(dt.now().year), str(dt.now().year + 1)]
         # conf_year = ''
     else:
         if args.year.startswith('20'):
-            conf_year = args.year
+            conf_year = [args.year]
         else:
-            conf_year = '20' + args.year 
+            conf_year = ['20' + args.year ]
     conf_name = args.query
 
     confarr = []
-    for c in confobj_generator(conf_name, conf_year):
-        confarr.append(c)
+    for year in conf_year:
+        for c in confobj_generator(conf_name, year):
+            confarr.append(c)
 
     newarr = sorted(confarr, reverse=True)
     for conf in newarr:
