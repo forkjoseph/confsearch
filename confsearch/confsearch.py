@@ -2,6 +2,7 @@
 import requests
 from bs4 import BeautifulSoup
 import re
+from datetime import datetime as dt
 
 __author__ = "HyunJong Joseph Lee"
 __copyright__ = "Copyright (C) 2017 " + __author__
@@ -9,6 +10,7 @@ __license__ = "GNU GPL v2.0"
 __version__ = "0.0.1"
 
 verbose = False
+today = dt.now()
 
 class Conf(object):
     aka_regex = re.compile(r"(.*) (\d{4})")
@@ -101,15 +103,13 @@ class Conf(object):
 
     ''' compare deadline! not conference date '''
     def __lt__(self, other):
-        from datetime import datetime as dt
         return dt.strptime(self.deadline, '%b %d, %Y') \
                 < dt.strptime(other.deadline, '%b %d, %Y')
 
     def __gt__(self, other):
-        from datetime import datetime as dt
         if other.deadline is None:
             print "OTHER:", other
-        if self.deadlien is None:
+        if self.deadline is None:
             print "SELF:", self
         return dt.strptime(self.deadline, '%b %d, %Y') \
                 > dt.strptime(other.deadline, '%b %d, %Y')
@@ -145,9 +145,16 @@ def confinfo(conf):
             ret += 'deadline: TBD'
         else:
             ret += 'deadline: '
-	    ret += bcolors.RED 
+            is_active = False
+            if dt.strptime(conf.deadline, '%b %d, %Y') > \
+                dt.strptime(today.strftime('%b %d, %Y'), '%b %d, %Y'):
+                is_active = True
+
+            if is_active is True:
+                ret += bcolors.RED 
             ret += '{:s}'.format(conf.deadline)
-            ret += bcolors.ENDC
+            if is_active is True:
+                ret += bcolors.ENDC
     if conf.abstract != '':
         ret += ', abs {:s}'.format(conf.abstract)
     ret += ']'
@@ -228,14 +235,6 @@ def confobj_generator(conf_name, conf_year):
                             deadline = texts
                             # print texts
                         confobj.set_deadline(deadline, abstract)
-                        if confobj.aka.lower().find('workshop') != -1:
-                            # print 'COOL'
-                            # confobj = None
-                            yield None
-                        if confobj.aka.lower().find('proposal') != -1:
-                            # print 'COOL-2'
-                            # confobj = None
-                            yield None
 
                         # print 'aka:',confobj.aka
                         if confobj.aka.lower().find(conf_name.lower()) != -1:
@@ -243,12 +242,14 @@ def confobj_generator(conf_name, conf_year):
                                 if confobj.aka.lower() == conf_name.lower():
                                     yield confobj
                                 else:
-                                    confobj = None
                                     yield None
+                            elif confobj.aka.lower().find('workshop') != -1:
+                                yield None
+                            elif confobj.aka.lower().find('proposal') != -1:
+                                yield None
                             else:
                                 yield confobj
                         else:
-                            confobj = None
                             yield None
 
 
