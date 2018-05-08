@@ -33,7 +33,8 @@ def main():
     for name in conf_names:
         for year in conf_years:
             for c in confobj_generator(name, year):
-                confarr.append(c)
+                if c:
+                    confarr.append(c)
 
     newarr = sorted(confarr, reverse=True)
     for conf in newarr:

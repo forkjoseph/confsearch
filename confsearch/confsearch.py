@@ -117,7 +117,21 @@ class Conf(object):
         #         > dt(other.deadline_year, other.deadline_month,
         #                 other.deadline_day)
 
+class bcolors:
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    RED   = "\033[1;31m"  
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
+
+
 def confinfo(conf):
+    if conf is None:
+        return ''
     ret = '{:s}\'{:s}'.format(conf.aka, conf.year[2:])
     if conf.where != '':
         ret += ', held at {:s}'.format(conf.where)
@@ -130,7 +144,10 @@ def confinfo(conf):
         if conf.deadline == 'Jan 1, 1960':
             ret += 'deadline: TBD'
         else:
-            ret += 'deadline: {:s}'.format(conf.deadline)
+            ret += 'deadline: '
+	    ret += bcolors.RED 
+            ret += '{:s}'.format(conf.deadline)
+            ret += bcolors.ENDC
     if conf.abstract != '':
         ret += ', abs {:s}'.format(conf.abstract)
     ret += ']'
@@ -169,6 +186,10 @@ def confobj_generator(conf_name, conf_year):
             if cnt == 1:
                 continue
 
+            if verbose:
+                print conf
+                print '='*30
+
             ''' contains conf acronym & url '''
             if (cnt % 2) == 0: 
                 dates = False
@@ -180,8 +201,12 @@ def confobj_generator(conf_name, conf_year):
                 name = conf.find('td', {'colspan' : '3'}).text
 
                 confobj = Conf(name, aka)
-                # print aka, ":",
+                if verbose:
+                    print aka, ":"
             else:
+                # if confobj is None:
+                #     continue
+
                 orderdetect = 0 # 1 = when, 2 = place, 3 = deadline
                 details = conf.findAll('td')
                 for detail in details:
@@ -203,6 +228,27 @@ def confobj_generator(conf_name, conf_year):
                             deadline = texts
                             # print texts
                         confobj.set_deadline(deadline, abstract)
-                        yield confobj
+                        if confobj.aka.lower().find('workshop') != -1:
+                            # print 'COOL'
+                            # confobj = None
+                            yield None
+                        if confobj.aka.lower().find('proposal') != -1:
+                            # print 'COOL-2'
+                            # confobj = None
+                            yield None
+
+                        # print 'aka:',confobj.aka
+                        if confobj.aka.lower().find(conf_name.lower()) != -1:
+                            if conf_name.lower() == 'sec':
+                                if confobj.aka.lower() == conf_name.lower():
+                                    yield confobj
+                                else:
+                                    confobj = None
+                                    yield None
+                            else:
+                                yield confobj
+                        else:
+                            confobj = None
+                            yield None
 
 
